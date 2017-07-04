@@ -11,24 +11,49 @@ using System.IO;
 using System.Reflection;
 using Microsoft.Win32;
 using System.Dynamic;
+using System.Security.Cryptography;
 
 namespace VideoAnnotation
 {
     public partial class MainForm : Form
     {
-        private string[] fileTypes;
-        private List<string> dataSource;
+        private static string[] fileTypes = new string[] { "mp4", "avi", "rmvb", "mkv" };
+        //更新UI
+        private Action<float> updateUi;
+        private Vlc.DotNet.Core.VlcMedia CurrentMedia;
+
         public MainForm()
         {
             InitializeComponent();
-            fileTypes = new string[] { "mp4", "avi", "rmvb", "mkv" };
-            dataSource = new List<string>();
+            this.vlcPlayer.PositionChanged += vlcPlayer_PositionChanged;
+
+            updateUi = (position) =>
+            {
+                var p = this.CurrentMedia.Duration.Ticks * position;
+                var time = new DateTime((long)p);
+                this.labelVideoPosition.Text = string.Format("{0} / {1}:{2}:{3}",
+                     time.ToString("T"),
+                    this.CurrentMedia.Duration.Hours,
+                    this.CurrentMedia.Duration.Minutes.ToString().PadLeft(2, '0'),
+                    this.CurrentMedia.Duration.Seconds.ToString().PadLeft(2, '0'));
+
+                this.trackBarPosition.Maximum = (int)this.CurrentMedia.Duration.TotalSeconds;
+                this.trackBarPosition.Value = time.Hour * 60 * 60 + time.Minute * 60 + time.Second;
+            };
+        }
+        #region events
+        /// <summary>
+        /// 窗体加载
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MainForm_Load(object sender, EventArgs e)
+        {
             var files = DataHelper.GetFiles();
             BindDataToFileListView();
+
+            HashFiles();
         }
-
-        #region events
-
         private void MenuItemOpenFile_Click(object sender, EventArgs e)
         {
             if (this.OpenFileDialog.ShowDialog() == DialogResult.OK)
@@ -36,7 +61,11 @@ namespace VideoAnnotation
                 MessageBox.Show(this.OpenFileDialog.FileName);
             }
         }
-
+        /// <summary>
+        /// 菜单打开文件夹按钮点击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MenuItemOpenFolder_Click(object sender, EventArgs e)
         {
             if (this.FolderBrowserDialog.ShowDialog() == DialogResult.OK)
@@ -47,7 +76,11 @@ namespace VideoAnnotation
                 BindDataToFileListView();
             }
         }
-
+        /// <summary>
+        /// 菜单播放按钮点击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MenuItemPlay_Click(object sender, EventArgs e)
         {
             var selectItems = this.listViewFiles.SelectedItems;
@@ -56,10 +89,13 @@ namespace VideoAnnotation
                 MessageBox.Show("请选择要播放的文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            var filePath = selectItems[0].Text;
-            this.vlcPlayer.SetMedia(new FileInfo(filePath));
-            this.vlcPlayer.Play();
+            PlayVideo(selectItems[0].Text);
         }
+        /// <summary>
+        /// 设置VLC播放器控件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void vlcPlayer_VlcLibDirectoryNeeded(object sender, Vlc.DotNet.Forms.VlcLibDirectoryNeededEventArgs e)
         {
 
@@ -79,28 +115,6 @@ namespace VideoAnnotation
                     e.VlcLibDirectory = new DirectoryInfo(installLocation.ToString());
                 }
             }
-            #region MyRegion
-            //var currentAssembly = Assembly.GetEntryAssembly();
-            //var currentDirectory = new FileInfo(currentAssembly.Location).DirectoryName;
-            //if (currentDirectory == null)
-            //    return;
-            //if (AssemblyName.GetAssemblyName(currentAssembly.Location).ProcessorArchitecture == ProcessorArchitecture.X86)
-            //    e.VlcLibDirectory = new DirectoryInfo(Path.Combine(currentDirectory, @"\lib\x86\"));
-            //else
-            //    e.VlcLibDirectory = new DirectoryInfo(Path.Combine(currentDirectory, @"\lib\x64\"));
-
-            //if (!e.VlcLibDirectory.Exists)
-            //{
-            //    var folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
-            //    folderBrowserDialog.Description = "请选择VLC播放器位置";
-            //    folderBrowserDialog.RootFolder = Environment.SpecialFolder.Desktop;
-            //    folderBrowserDialog.ShowNewFolderButton = true;
-            //    if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
-            //    {
-            //        e.VlcLibDirectory = new DirectoryInfo(folderBrowserDialog.SelectedPath);
-            //    }
-            //} 
-            #endregion
         }
 
         private void listView_DrawItem(object sender, DrawListViewItemEventArgs e)
@@ -119,9 +133,62 @@ namespace VideoAnnotation
             e.Item.Font = font;
             e.Graphics.DrawString(listbox.Items[e.ItemIndex].ToString(), font, new SolidBrush(Color.Black), e.Bounds);
         }
+        /// <summary>
+        /// 开始/暂停播放按钮点击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnStartStop_Click(object sender, EventArgs e)
+        {
+            if (this.btnStartStop.Tag.Equals("START"))
+            {
+                this.btnStartStop.Text = "暂停";
+                this.btnStartStop.Tag = "STOP";
+                var selectItems = this.listViewFiles.SelectedItems;
+                if (selectItems == null || selectItems.Count == 0)
+                {
+                    MessageBox.Show("请选择要播放的文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                PlayVideo(selectItems[0].Text);
+            }
+            else
+            {
+                this.btnStartStop.Text = "开始";
+                this.btnStartStop.Tag = "START";
+                this.vlcPlayer.Stop();
+            }
+        }
+        /// <summary>
+        /// 播放器视频播放位置改变事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void vlcPlayer_PositionChanged(object sender, Vlc.DotNet.Core.VlcMediaPlayerPositionChangedEventArgs e)
+        {
+            if (this.updateUi != null)
+            {
+                Invoke(updateUi, e.NewPosition);
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void trackBarPosition_Scroll(object sender, EventArgs e)
+        {
+            //TODO YGJ 此处应该播放时间根据拖动位置改变
+            this.vlcPlayer.Position = ((float)this.trackBarPosition.Value) / this.trackBarPosition.Maximum;
+        }
         #endregion
 
         #region methods
+        /// <summary>
+        /// 从数据库中获取文件信息
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private List<string> GetFiles(string path)
         {
             if (fileTypes == null || !fileTypes.Any()) return null;
@@ -130,7 +197,7 @@ namespace VideoAnnotation
             {
                 var di = new System.IO.DirectoryInfo(tempPath);
                 var files = new List<string>();
-                foreach (var fileType in this.fileTypes)
+                foreach (var fileType in fileTypes)
                 {
                     files.AddRange(di.GetFiles("*." + fileType).Select(o => o.FullName).ToList());
                 }
@@ -145,9 +212,10 @@ namespace VideoAnnotation
                 return files;
             };
             return funGetFiles(path);
-
         }
-
+        /// <summary>
+        /// 给文件列表绑定数据
+        /// </summary>
         private void BindDataToFileListView()
         {
             var dtFiles = DataHelper.GetFiles();
@@ -163,7 +231,10 @@ namespace VideoAnnotation
                 }
             }
         }
-
+        /// <summary>
+        /// 打开文件夹后，将文件信息保存数据至数据库
+        /// </summary>
+        /// <param name="fileNames"></param>
         private void SaveFilesToDD(List<string> fileNames)
         {
             var list = new List<dynamic>();
@@ -173,6 +244,7 @@ namespace VideoAnnotation
                 fileInfo.fileFullName = fileName;
                 var index = fileName.LastIndexOf("\\");
                 fileInfo.fileName = fileName.Substring(index + 1, fileName.Length - index - 1);
+                fileInfo.id = Guid.NewGuid().ToString().Replace("-", "");
                 list.Add(fileInfo);
             }
             try
@@ -184,20 +256,67 @@ namespace VideoAnnotation
                 MessageBox.Show("发生错误，保存失败，" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        #endregion
-
-        private void btnStartStop_Click(object sender, EventArgs e)
+        /// <summary>
+        /// 播放视频
+        /// </summary>
+        /// <param name="filePath"></param>
+        private void PlayVideo(string filePath)
         {
-            if (this.btnStartStop.Tag.Equals("START"))
+            this.vlcPlayer.SetMedia(new FileInfo(filePath));
+            this.vlcPlayer.Play();
+            this.CurrentMedia = this.vlcPlayer.GetCurrentMedia();
+        }
+
+        private void HashFiles()
+        {
+            dynamic fileInfo = DataHelper.GetNoHashFile();
+            if (!File.Exists(fileInfo.file_full_name))
             {
-                this.btnStartStop.Text = "暂停";
-                this.btnStartStop.Tag = "STOP";
+                DataHelper.UpdateFileUseable(fileInfo.id, false);
             }
             else
             {
-                this.btnStartStop.Text = "开始";
-                this.btnStartStop.Tag = "START";
+                //var tempFile = Path.Combine(fileInfo.file_full_name, ".an.temp");
+                //var fi = new FileInfo(tempFile);
+                //FileStream stream;
+                //if (!fi.Exists)
+                //{
+                //    stream = fi.Create();
+                //}
+                //else
+                //{
+                //    stream = fi.OpenWrite();
+                //}
+                var code = HashFile(fileInfo.file_full_name);
+                DataHelper.UpdateFileHash(fileInfo.id, code);
             }
+
         }
+        private string HashFile(string path)
+        {
+            int bufferSize = 1024 * 1024;//自定义缓冲区大小1MB  
+            byte[] buffer = new byte[bufferSize];
+            string hashCode = null;
+            using (var inputStream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var hashAlgorithm = new MD5CryptoServiceProvider();
+                int readLength = 0;//每次读取长度  
+                var output = new byte[bufferSize];
+                while ((readLength = inputStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    //计算MD5  
+                    hashAlgorithm.TransformBlock(buffer, 0, readLength, output, 0);
+                }
+                //完成最后计算，必须调用(由于上一部循环已经完成所有运算，所以调用此方法时后面的两个参数都为0)  
+                hashAlgorithm.TransformFinalBlock(buffer, 0, 0);
+                hashCode = BitConverter.ToString(hashAlgorithm.Hash);
+                hashAlgorithm.Clear();
+            }
+            hashCode = hashCode.Replace("-", "");
+            return hashCode;
+        }
+        #endregion
+
+
     }
 }

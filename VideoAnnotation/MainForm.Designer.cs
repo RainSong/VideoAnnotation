@@ -40,25 +40,26 @@
             this.listViewFiles = new System.Windows.Forms.ListView();
             this.vlcPlayer = new Vlc.DotNet.Forms.VlcControl();
             this.panelRight = new System.Windows.Forms.Panel();
-            this.panelRightBottom = new System.Windows.Forms.Panel();
             this.panelRightTop = new System.Windows.Forms.Panel();
-            this.panelPlayControl = new System.Windows.Forms.Panel();
             this.panelPlayer = new System.Windows.Forms.Panel();
-            this.listView1 = new System.Windows.Forms.ListView();
-            this.btnStartStop = new System.Windows.Forms.Button();
-            this.btnPrevious = new System.Windows.Forms.Button();
-            this.btnNext = new System.Windows.Forms.Button();
+            this.panelPlayControl = new System.Windows.Forms.Panel();
+            this.labelVideoPosition = new System.Windows.Forms.Label();
+            this.trackBarPosition = new System.Windows.Forms.TrackBar();
             this.label1 = new System.Windows.Forms.Label();
-            this.trackBar1 = new System.Windows.Forms.TrackBar();
+            this.btnNext = new System.Windows.Forms.Button();
+            this.btnPrevious = new System.Windows.Forms.Button();
+            this.btnStartStop = new System.Windows.Forms.Button();
+            this.panelRightBottom = new System.Windows.Forms.Panel();
+            this.listViewAnnotation = new System.Windows.Forms.ListView();
             this.Menu.SuspendLayout();
             this.panelLeft.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vlcPlayer)).BeginInit();
             this.panelRight.SuspendLayout();
-            this.panelRightBottom.SuspendLayout();
             this.panelRightTop.SuspendLayout();
-            this.panelPlayControl.SuspendLayout();
             this.panelPlayer.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
+            this.panelPlayControl.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBarPosition)).BeginInit();
+            this.panelRightBottom.SuspendLayout();
             this.SuspendLayout();
             // 
             // Menu
@@ -163,15 +164,6 @@
             this.panelRight.Size = new System.Drawing.Size(836, 657);
             this.panelRight.TabIndex = 2;
             // 
-            // panelRightBottom
-            // 
-            this.panelRightBottom.Controls.Add(this.listView1);
-            this.panelRightBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelRightBottom.Location = new System.Drawing.Point(0, 493);
-            this.panelRightBottom.Name = "panelRightBottom";
-            this.panelRightBottom.Size = new System.Drawing.Size(836, 164);
-            this.panelRightBottom.TabIndex = 0;
-            // 
             // panelRightTop
             // 
             this.panelRightTop.Controls.Add(this.panelPlayer);
@@ -182,9 +174,19 @@
             this.panelRightTop.Size = new System.Drawing.Size(836, 493);
             this.panelRightTop.TabIndex = 1;
             // 
+            // panelPlayer
+            // 
+            this.panelPlayer.Controls.Add(this.vlcPlayer);
+            this.panelPlayer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelPlayer.Location = new System.Drawing.Point(0, 0);
+            this.panelPlayer.Name = "panelPlayer";
+            this.panelPlayer.Size = new System.Drawing.Size(836, 443);
+            this.panelPlayer.TabIndex = 1;
+            // 
             // panelPlayControl
             // 
-            this.panelPlayControl.Controls.Add(this.trackBar1);
+            this.panelPlayControl.Controls.Add(this.labelVideoPosition);
+            this.panelPlayControl.Controls.Add(this.trackBarPosition);
             this.panelPlayControl.Controls.Add(this.label1);
             this.panelPlayControl.Controls.Add(this.btnNext);
             this.panelPlayControl.Controls.Add(this.btnPrevious);
@@ -195,23 +197,53 @@
             this.panelPlayControl.Size = new System.Drawing.Size(836, 50);
             this.panelPlayControl.TabIndex = 0;
             // 
-            // panelPlayer
+            // labelVideoPosition
             // 
-            this.panelPlayer.Controls.Add(this.vlcPlayer);
-            this.panelPlayer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelPlayer.Location = new System.Drawing.Point(0, 0);
-            this.panelPlayer.Name = "panelPlayer";
-            this.panelPlayer.Size = new System.Drawing.Size(836, 443);
-            this.panelPlayer.TabIndex = 1;
+            this.labelVideoPosition.AutoSize = true;
+            this.labelVideoPosition.Font = new System.Drawing.Font("宋体", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.labelVideoPosition.Location = new System.Drawing.Point(676, 16);
+            this.labelVideoPosition.Name = "labelVideoPosition";
+            this.labelVideoPosition.Size = new System.Drawing.Size(126, 14);
+            this.labelVideoPosition.TabIndex = 6;
+            this.labelVideoPosition.Text = "0:00:00 / 0:00:00";
             // 
-            // listView1
+            // trackBarPosition
             // 
-            this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView1.Location = new System.Drawing.Point(0, 0);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(836, 164);
-            this.listView1.TabIndex = 0;
-            this.listView1.UseCompatibleStateImageBehavior = false;
+            this.trackBarPosition.Location = new System.Drawing.Point(246, 14);
+            this.trackBarPosition.Maximum = 100;
+            this.trackBarPosition.Name = "trackBarPosition";
+            this.trackBarPosition.Size = new System.Drawing.Size(424, 45);
+            this.trackBarPosition.TabIndex = 4;
+            this.trackBarPosition.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.trackBarPosition.Scroll += new System.EventHandler(this.trackBarPosition_Scroll);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("宋体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label1.Location = new System.Drawing.Point(211, 17);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(29, 12);
+            this.label1.TabIndex = 3;
+            this.label1.Text = "进度";
+            // 
+            // btnNext
+            // 
+            this.btnNext.Location = new System.Drawing.Point(145, 11);
+            this.btnNext.Name = "btnNext";
+            this.btnNext.Size = new System.Drawing.Size(50, 25);
+            this.btnNext.TabIndex = 2;
+            this.btnNext.Text = "下一个";
+            this.btnNext.UseVisualStyleBackColor = true;
+            // 
+            // btnPrevious
+            // 
+            this.btnPrevious.Location = new System.Drawing.Point(33, 11);
+            this.btnPrevious.Name = "btnPrevious";
+            this.btnPrevious.Size = new System.Drawing.Size(50, 25);
+            this.btnPrevious.TabIndex = 1;
+            this.btnPrevious.Text = "上一个";
+            this.btnPrevious.UseVisualStyleBackColor = true;
             // 
             // btnStartStop
             // 
@@ -224,40 +256,26 @@
             this.btnStartStop.UseVisualStyleBackColor = true;
             this.btnStartStop.Click += new System.EventHandler(this.btnStartStop_Click);
             // 
-            // btnPrevious
+            // panelRightBottom
             // 
-            this.btnPrevious.Location = new System.Drawing.Point(33, 11);
-            this.btnPrevious.Name = "btnPrevious";
-            this.btnPrevious.Size = new System.Drawing.Size(50, 25);
-            this.btnPrevious.TabIndex = 1;
-            this.btnPrevious.Text = "上一个";
-            this.btnPrevious.UseVisualStyleBackColor = true;
+            this.panelRightBottom.Controls.Add(this.listViewAnnotation);
+            this.panelRightBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelRightBottom.Location = new System.Drawing.Point(0, 493);
+            this.panelRightBottom.Name = "panelRightBottom";
+            this.panelRightBottom.Size = new System.Drawing.Size(836, 164);
+            this.panelRightBottom.TabIndex = 0;
             // 
-            // btnNext
+            // listViewAnnotation
             // 
-            this.btnNext.Location = new System.Drawing.Point(145, 11);
-            this.btnNext.Name = "btnNext";
-            this.btnNext.Size = new System.Drawing.Size(50, 25);
-            this.btnNext.TabIndex = 2;
-            this.btnNext.Text = "下一个";
-            this.btnNext.UseVisualStyleBackColor = true;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("宋体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.label1.Location = new System.Drawing.Point(211, 17);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(29, 12);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "进度";
-            // 
-            // trackBar1
-            // 
-            this.trackBar1.Location = new System.Drawing.Point(246, 11);
-            this.trackBar1.Name = "trackBar1";
-            this.trackBar1.Size = new System.Drawing.Size(578, 45);
-            this.trackBar1.TabIndex = 4;
+            this.listViewAnnotation.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listViewAnnotation.FullRowSelect = true;
+            this.listViewAnnotation.GridLines = true;
+            this.listViewAnnotation.Location = new System.Drawing.Point(0, 0);
+            this.listViewAnnotation.Name = "listViewAnnotation";
+            this.listViewAnnotation.Size = new System.Drawing.Size(836, 164);
+            this.listViewAnnotation.TabIndex = 0;
+            this.listViewAnnotation.UseCompatibleStateImageBehavior = false;
+            this.listViewAnnotation.View = System.Windows.Forms.View.List;
             // 
             // MainForm
             // 
@@ -270,17 +288,18 @@
             this.MainMenuStrip = this.Menu;
             this.Name = "MainForm";
             this.Text = "视频注解";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.panelLeft.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.vlcPlayer)).EndInit();
             this.panelRight.ResumeLayout(false);
-            this.panelRightBottom.ResumeLayout(false);
             this.panelRightTop.ResumeLayout(false);
+            this.panelPlayer.ResumeLayout(false);
             this.panelPlayControl.ResumeLayout(false);
             this.panelPlayControl.PerformLayout();
-            this.panelPlayer.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBarPosition)).EndInit();
+            this.panelRightBottom.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -303,13 +322,14 @@
         private System.Windows.Forms.Panel panelRightTop;
         private System.Windows.Forms.Panel panelPlayer;
         private System.Windows.Forms.Panel panelPlayControl;
-        private System.Windows.Forms.TrackBar trackBar1;
+        private System.Windows.Forms.TrackBar trackBarPosition;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnNext;
         private System.Windows.Forms.Button btnPrevious;
         private System.Windows.Forms.Button btnStartStop;
         private System.Windows.Forms.Panel panelRightBottom;
-        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ListView listViewAnnotation;
+        private System.Windows.Forms.Label labelVideoPosition;
     }
 }
 
