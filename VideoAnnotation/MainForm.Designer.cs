@@ -33,11 +33,14 @@
             this.MenuItemOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.MenuItemOpenFile = new System.Windows.Forms.ToolStripMenuItem();
             this.MenuItemOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
-            this.MenuItemPlay = new System.Windows.Forms.ToolStripMenuItem();
+            this.MenuItemAddAnnotation = new System.Windows.Forms.ToolStripMenuItem();
             this.OpenFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.FolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.panelLeft = new System.Windows.Forms.Panel();
-            this.listViewFiles = new System.Windows.Forms.ListView();
+            this.DataGridFiles = new System.Windows.Forms.DataGridView();
+            this.ColID = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColFileFullName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colFileName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.vlcPlayer = new Vlc.DotNet.Forms.VlcControl();
             this.panelRight = new System.Windows.Forms.Panel();
             this.panelRightTop = new System.Windows.Forms.Panel();
@@ -53,6 +56,7 @@
             this.listViewAnnotation = new System.Windows.Forms.ListView();
             this.Menu.SuspendLayout();
             this.panelLeft.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.DataGridFiles)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.vlcPlayer)).BeginInit();
             this.panelRight.SuspendLayout();
             this.panelRightTop.SuspendLayout();
@@ -68,7 +72,7 @@
             this.Menu.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.MenuItemFile,
-            this.MenuItemPlay});
+            this.MenuItemAddAnnotation});
             this.Menu.Location = new System.Drawing.Point(0, 0);
             this.Menu.Name = "Menu";
             this.Menu.Size = new System.Drawing.Size(1146, 25);
@@ -106,12 +110,12 @@
             this.MenuItemOpenFolder.Text = "文件夹";
             this.MenuItemOpenFolder.Click += new System.EventHandler(this.MenuItemOpenFolder_Click);
             // 
-            // MenuItemPlay
+            // MenuItemAddAnnotation
             // 
-            this.MenuItemPlay.Name = "MenuItemPlay";
-            this.MenuItemPlay.Size = new System.Drawing.Size(44, 21);
-            this.MenuItemPlay.Text = "播放";
-            this.MenuItemPlay.Click += new System.EventHandler(this.MenuItemPlay_Click);
+            this.MenuItemAddAnnotation.Name = "MenuItemAddAnnotation";
+            this.MenuItemAddAnnotation.Size = new System.Drawing.Size(68, 21);
+            this.MenuItemAddAnnotation.Text = "添加注解";
+            this.MenuItemAddAnnotation.Click += new System.EventHandler(this.MenuItemAddAnnotation_Click);
             // 
             // FolderBrowserDialog
             // 
@@ -119,26 +123,63 @@
             // 
             // panelLeft
             // 
-            this.panelLeft.Controls.Add(this.listViewFiles);
+            this.panelLeft.Controls.Add(this.DataGridFiles);
             this.panelLeft.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelLeft.Location = new System.Drawing.Point(0, 25);
             this.panelLeft.Name = "panelLeft";
             this.panelLeft.Size = new System.Drawing.Size(310, 657);
             this.panelLeft.TabIndex = 1;
             // 
-            // listViewFiles
+            // DataGridFiles
             // 
-            this.listViewFiles.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listViewFiles.Font = new System.Drawing.Font("宋体", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.listViewFiles.FullRowSelect = true;
-            this.listViewFiles.GridLines = true;
-            this.listViewFiles.Location = new System.Drawing.Point(0, 0);
-            this.listViewFiles.Name = "listViewFiles";
-            this.listViewFiles.Size = new System.Drawing.Size(310, 657);
-            this.listViewFiles.TabIndex = 0;
-            this.listViewFiles.UseCompatibleStateImageBehavior = false;
-            this.listViewFiles.View = System.Windows.Forms.View.List;
-            this.listViewFiles.DrawItem += new System.Windows.Forms.DrawListViewItemEventHandler(this.listView_DrawItem);
+            this.DataGridFiles.AllowUserToAddRows = false;
+            this.DataGridFiles.AllowUserToDeleteRows = false;
+            this.DataGridFiles.AllowUserToResizeColumns = false;
+            this.DataGridFiles.AllowUserToResizeRows = false;
+            this.DataGridFiles.BackgroundColor = System.Drawing.SystemColors.Control;
+            this.DataGridFiles.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.DataGridFiles.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.DataGridFiles.ColumnHeadersVisible = false;
+            this.DataGridFiles.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.ColID,
+            this.ColFileFullName,
+            this.colFileName});
+            this.DataGridFiles.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.DataGridFiles.Location = new System.Drawing.Point(0, 0);
+            this.DataGridFiles.MultiSelect = false;
+            this.DataGridFiles.Name = "DataGridFiles";
+            this.DataGridFiles.RowHeadersVisible = false;
+            this.DataGridFiles.RowTemplate.Height = 23;
+            this.DataGridFiles.ScrollBars = System.Windows.Forms.ScrollBars.Horizontal;
+            this.DataGridFiles.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.DataGridFiles.Size = new System.Drawing.Size(310, 657);
+            this.DataGridFiles.TabIndex = 0;
+            this.DataGridFiles.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridFiles_CellDoubleClick);
+            // 
+            // ColID
+            // 
+            this.ColID.DataPropertyName = "id";
+            this.ColID.HeaderText = "FieldID";
+            this.ColID.Name = "ColID";
+            this.ColID.ReadOnly = true;
+            this.ColID.Visible = false;
+            // 
+            // ColFileFullName
+            // 
+            this.ColFileFullName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ColFileFullName.DataPropertyName = "file_full_name";
+            this.ColFileFullName.HeaderText = "FileFullName";
+            this.ColFileFullName.Name = "ColFileFullName";
+            this.ColFileFullName.ReadOnly = true;
+            this.ColFileFullName.Visible = false;
+            // 
+            // colFileName
+            // 
+            this.colFileName.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colFileName.DataPropertyName = "file_name";
+            this.colFileName.HeaderText = "FileName";
+            this.colFileName.Name = "colFileName";
+            this.colFileName.ReadOnly = true;
             // 
             // vlcPlayer
             // 
@@ -153,6 +194,7 @@
             this.vlcPlayer.VlcLibDirectory = null;
             this.vlcPlayer.VlcMediaplayerOptions = null;
             this.vlcPlayer.VlcLibDirectoryNeeded += new System.EventHandler<Vlc.DotNet.Forms.VlcLibDirectoryNeededEventArgs>(this.vlcPlayer_VlcLibDirectoryNeeded);
+            this.vlcPlayer.PositionChanged += new System.EventHandler<Vlc.DotNet.Core.VlcMediaPlayerPositionChangedEventArgs>(this.vlcPlayer_PositionChanged);
             // 
             // panelRight
             // 
@@ -292,6 +334,7 @@
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.panelLeft.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.DataGridFiles)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.vlcPlayer)).EndInit();
             this.panelRight.ResumeLayout(false);
             this.panelRightTop.ResumeLayout(false);
@@ -315,8 +358,6 @@
         private System.Windows.Forms.OpenFileDialog OpenFileDialog;
         private System.Windows.Forms.FolderBrowserDialog FolderBrowserDialog;
         private System.Windows.Forms.Panel panelLeft;
-        private System.Windows.Forms.ListView listViewFiles;
-        private System.Windows.Forms.ToolStripMenuItem MenuItemPlay;
         private Vlc.DotNet.Forms.VlcControl vlcPlayer;
         private System.Windows.Forms.Panel panelRight;
         private System.Windows.Forms.Panel panelRightTop;
@@ -330,6 +371,11 @@
         private System.Windows.Forms.Panel panelRightBottom;
         private System.Windows.Forms.ListView listViewAnnotation;
         private System.Windows.Forms.Label labelVideoPosition;
+        private System.Windows.Forms.ToolStripMenuItem MenuItemAddAnnotation;
+        private System.Windows.Forms.DataGridView DataGridFiles;
+        private System.Windows.Forms.DataGridViewTextBoxColumn ColID;
+        private System.Windows.Forms.DataGridViewTextBoxColumn ColFileFullName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colFileName;
     }
 }
 

@@ -12,6 +12,7 @@ using System.Reflection;
 using Microsoft.Win32;
 using System.Dynamic;
 using System.Security.Cryptography;
+using System.Diagnostics;
 
 namespace VideoAnnotation
 {
@@ -25,8 +26,8 @@ namespace VideoAnnotation
         public MainForm()
         {
             InitializeComponent();
-            this.vlcPlayer.PositionChanged += vlcPlayer_PositionChanged;
-
+            //this.vlcPlayer.PositionChanged += vlcPlayer_PositionChanged;
+            this.DataGridFiles.AutoGenerateColumns = false;
             updateUi = (position) =>
             {
                 var p = this.CurrentMedia.Duration.Ticks * position;
@@ -51,8 +52,15 @@ namespace VideoAnnotation
         {
             var files = DataHelper.GetFiles();
             BindDataToFileListView();
+            //try
+            //{
+            //    Task task = new Task(HashFiles);
+            //    task.Start();
+            //}
+            //catch (Exception ex)
+            //{
 
-            HashFiles();
+            //}
         }
         private void MenuItemOpenFile_Click(object sender, EventArgs e)
         {
@@ -75,21 +83,6 @@ namespace VideoAnnotation
                 SaveFilesToDD(files);
                 BindDataToFileListView();
             }
-        }
-        /// <summary>
-        /// 菜单播放按钮点击事件
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void MenuItemPlay_Click(object sender, EventArgs e)
-        {
-            var selectItems = this.listViewFiles.SelectedItems;
-            if (selectItems == null || selectItems.Count == 0)
-            {
-                MessageBox.Show("请选择要播放的文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            PlayVideo(selectItems[0].Text);
         }
         /// <summary>
         /// 设置VLC播放器控件
@@ -116,23 +109,6 @@ namespace VideoAnnotation
                 }
             }
         }
-
-        private void listView_DrawItem(object sender, DrawListViewItemEventArgs e)
-        {
-            var listbox = sender as ListBox;
-            if (listbox == null) return;
-            e.DrawBackground();
-            e.DrawFocusRectangle();
-
-            ////让文字位于Item的中间
-            //float difH = (e.Bounds.Height - e.Font.Height) / 2;
-            //RectangleF rf = new RectangleF(e.Bounds.X, e.Bounds.Y + difH, e.Bounds.Width, e.Font.Height);
-            //e.Graphics.DrawString(listBox1.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), rf);
-
-            var font = new Font("宋体", 20);
-            e.Item.Font = font;
-            e.Graphics.DrawString(listbox.Items[e.ItemIndex].ToString(), font, new SolidBrush(Color.Black), e.Bounds);
-        }
         /// <summary>
         /// 开始/暂停播放按钮点击事件
         /// </summary>
@@ -142,21 +118,19 @@ namespace VideoAnnotation
         {
             if (this.btnStartStop.Tag.Equals("START"))
             {
-                this.btnStartStop.Text = "暂停";
-                this.btnStartStop.Tag = "STOP";
-                var selectItems = this.listViewFiles.SelectedItems;
-                if (selectItems == null || selectItems.Count == 0)
+                if (this.CurrentMedia == null)
                 {
-                    MessageBox.Show("请选择要播放的文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
+                    var result = GetSelectRowValues();
+                    PlayVideo(result.fileName);
                 }
-                PlayVideo(selectItems[0].Text);
+                else
+                {
+                    this.Start();
+                }
             }
             else
             {
-                this.btnStartStop.Text = "开始";
-                this.btnStartStop.Tag = "START";
-                this.vlcPlayer.Stop();
+                this.Stop();
             }
         }
         /// <summary>
@@ -219,17 +193,7 @@ namespace VideoAnnotation
         private void BindDataToFileListView()
         {
             var dtFiles = DataHelper.GetFiles();
-            if (dtFiles != null && dtFiles.Rows.Count > 0)
-            {
-                foreach (DataRow dr in dtFiles.Rows)
-                {
-                    var fileName = dr.Field<string>("file_full_name");
-                    if (fileName != null && !string.IsNullOrEmpty(fileName))
-                    {
-                        this.listViewFiles.Items.Add(new ListViewItem(fileName));
-                    }
-                }
-            }
+            this.DataGridFiles.DataSource = dtFiles;
         }
         /// <summary>
         /// 打开文件夹后，将文件信息保存数据至数据库
@@ -269,28 +233,31 @@ namespace VideoAnnotation
 
         private void HashFiles()
         {
-            dynamic fileInfo = DataHelper.GetNoHashFile();
-            if (!File.Exists(fileInfo.file_full_name))
+            //dynamic fileInfo = DataHelper.GetNoHashFile();
+            dynamic fileInfo;
+            while ((fileInfo = DataHelper.GetNoHashFile()) != null)
             {
-                DataHelper.UpdateFileUseable(fileInfo.id, false);
+                if (!File.Exists(fileInfo.file_full_name))
+                {
+                    DataHelper.UpdateFileUseable(fileInfo.id, false);
+                }
+                else
+                {
+                    //var tempFile = Path.Combine(fileInfo.file_full_name, ".an.temp");
+                    //var fi = new FileInfo(tempFile);
+                    //FileStream stream;
+                    //if (!fi.Exists)
+                    //{
+                    //    stream = fi.Create();
+                    //}
+                    //else
+                    //{
+                    //    stream = fi.OpenWrite();
+                    //}
+                    var code = HashFile(fileInfo.file_full_name);
+                    DataHelper.UpdateFileHash(fileInfo.id, code);
+                }
             }
-            else
-            {
-                //var tempFile = Path.Combine(fileInfo.file_full_name, ".an.temp");
-                //var fi = new FileInfo(tempFile);
-                //FileStream stream;
-                //if (!fi.Exists)
-                //{
-                //    stream = fi.Create();
-                //}
-                //else
-                //{
-                //    stream = fi.OpenWrite();
-                //}
-                var code = HashFile(fileInfo.file_full_name);
-                DataHelper.UpdateFileHash(fileInfo.id, code);
-            }
-
         }
         private string HashFile(string path)
         {
@@ -317,6 +284,82 @@ namespace VideoAnnotation
         }
         #endregion
 
+        private void MenuItemAddAnnotation_Click(object sender, EventArgs e)
+        {
+            if (this.vlcPlayer.Position < 0)
+            {
+                MessageBox.Show("视频还没有开始播放", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            JP();
+            dynamic result = GetSelectRowValues();
+            if (result != null)
+            {
+                var addFrom = new AddAnnotation();
+                addFrom.Position = this.vlcPlayer.Position;
+                addFrom.StartPosition = FormStartPosition.CenterParent;
+                addFrom.ParentForm = this;
+                addFrom.FileId = result.id;
+                addFrom.ShowDialog();
+            }
+        }
+        public void Start()
+        {
+            this.btnStartStop.Tag = "Start";
+            this.btnStartStop.Text = "暂停";
+            this.vlcPlayer.Play();
+        }
+
+        public void Stop()
+        {
+            this.btnStartStop.Tag = "Stop";
+            this.btnStartStop.Text = "开始";
+            this.vlcPlayer.Stop();
+        }
+
+        public dynamic GetSelectRowValues(DataGridViewRow row = null)
+        {
+            if (row == null)
+            {
+                var selectRows = this.DataGridFiles.SelectedRows;
+                if (selectRows == null || selectRows.Count == 0) return null;
+                row = selectRows[0];
+            }
+            var id = row.Cells["colID"].Value == null ? string.Empty : row.Cells["colID"].Value.ToString();
+            var fileName = row.Cells["colFileFullName"].Value == null ? string.Empty : row.Cells["colFileFullName"].Value.ToString();
+            dynamic result = new ExpandoObject();
+            result.id = id;
+            result.fileName = fileName;
+            return result;
+        }
+
+        private void DataGridFiles_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            var row = this.DataGridFiles.Rows[e.RowIndex];
+            var result = GetSelectRowValues(row);
+            PlayVideo(result.fileName);
+        }
+
+        private string JP()
+        {
+            //string str1 = Process.GetCurrentProcess().MainModule.FileName;//可获得当前执行的exe的文件名。 
+            //string str2 = Environment.CurrentDirectory;//获取和设置当前目录（即该进程从中启动的目录）的完全限定路径。(备注:按照定义，如果该进程在本地或网络驱动器的根目录中启动，则此属性的值为驱动器名称后跟一个尾部反斜杠（如“C:\”）。如果该进程在子目录中启动，则此属性的值为不带尾部反斜杠的驱动器和子目录路径[如“C:\mySubDirectory”])。 
+            //string str3 = Directory.GetCurrentDirectory(); //获取应用程序的当前工作目录。 
+            //string str4 = AppDomain.CurrentDomain.BaseDirectory;//获取基目录，它由程序集冲突解决程序用来探测程序集。 
+            //string str5 = Application.StartupPath;//获取启动了应用程序的可执行文件的路径，不包括可执行文件的名称。 
+            //string str6 = Application.ExecutablePath;//获取启动了应用程序的可执行文件的路径，包括可执行文件的名称。 
+            //string str7 = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;//获取或设置包含该应用程序的目录的名称。
+            var path = Directory.GetCurrentDirectory().Replace("\\bin\\debug\\", "");
+            var result = GetSelectRowValues();
+            path = Path.Combine(path, "imgs", result.id);
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+            var imgName = Guid.NewGuid().ToString().Replace("-", "") + ".jpg";
+            path = Path.Combine(path, imgName);
+            return string.Empty;
+        }
 
     }
 }

@@ -115,7 +115,7 @@ namespace VideoAnnotation
                 {
                     var command = new SQLiteCommand(sql, conn);
                     var reader = command.ExecuteReader();
-                    if (reader.Read()) 
+                    if (reader.Read())
                     {
                         dynamic result = new ExpandoObject();
                         result.id = reader.GetString(0);
@@ -136,7 +136,7 @@ namespace VideoAnnotation
         /// <param name="fileId">文件ID</param>
         /// <param name="hashCode">Hash值</param>
         /// <returns></returns>
-        public static bool UpdateFileHash(int fileId, string hashCode)
+        public static bool UpdateFileHash(string fileId, string hashCode)
         {
             var sql = "update files set file_hash_code = @Code where id = @ID";
             try
@@ -144,7 +144,7 @@ namespace VideoAnnotation
                 using (var conn = GetOpenConnection())
                 {
                     var command = new SQLiteCommand(sql, conn);
-                    command.Parameters.Add(new SQLiteParameter[] 
+                    command.Parameters.AddRange(new SQLiteParameter[] 
                     {
                         new SQLiteParameter("ID",fileId),
                         new SQLiteParameter("Code",hashCode)
@@ -163,7 +163,7 @@ namespace VideoAnnotation
         /// <param name="fileId"></param>
         /// <param name="useable"></param>
         /// <returns></returns>
-        public static bool UpdateFileUseable(int fileId, bool useable)
+        public static bool UpdateFileUseable(string fileId, bool useable)
         {
             var sql = "update files set useable = @Useable where id = @ID";
             try
@@ -182,6 +182,31 @@ namespace VideoAnnotation
             catch (Exception ex)
             {
                 throw new Exception("更新文件Useable值失败", ex);
+            }
+        }
+
+        public static bool AddAnnotation(string fileId, float position, string annotation)
+        {
+            var id = Guid.NewGuid().ToString().Replace("-", "");
+            var sql = "insert into annotations(id,file_id,position,annotation) values(@ID,@FileId,@Position,@Annotation)";
+            try
+            {
+                using (var conn = GetOpenConnection())
+                {
+                    var cmd = new SQLiteCommand(sql, conn);
+                    cmd.Parameters.AddRange(new SQLiteParameter[] 
+                {
+                    new SQLiteParameter("ID",id),
+                    new SQLiteParameter("FileId",fileId),
+                    new SQLiteParameter("Position",position),
+                    new SQLiteParameter("Annotation",annotation)
+                });
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("保存注解失败", ex);
             }
         }
     }
