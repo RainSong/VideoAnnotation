@@ -14,6 +14,7 @@ namespace VideoAnnotation
     {
         public string FileId;
         public Form ParentForm;
+        public string ImgPath;
         public float Position { get; set; }
 
         public AddAnnotation()
@@ -60,6 +61,10 @@ namespace VideoAnnotation
         private void AddAnnotation_Load(object sender, EventArgs e)
         {
             this.textBox1.Text = this.Position.ToString();
+            if (!string.IsNullOrEmpty(this.ImgPath))
+            {
+                this.pictureBox1.Image = Image.FromFile(this.ImgPath);
+            }
         }
     }
 }

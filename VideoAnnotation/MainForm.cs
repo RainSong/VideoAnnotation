@@ -291,12 +291,15 @@ namespace VideoAnnotation
                 MessageBox.Show("视频还没有开始播放", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            JP();
             dynamic result = GetSelectRowValues();
+            var position = this.vlcPlayer.Position;
+            Stop();
+            var imgPath = TakeSnapshot(result.id);
             if (result != null)
             {
                 var addFrom = new AddAnnotation();
-                addFrom.Position = this.vlcPlayer.Position;
+                addFrom.Position = position;
+                addFrom.ImgPath = imgPath;
                 addFrom.StartPosition = FormStartPosition.CenterParent;
                 addFrom.ParentForm = this;
                 addFrom.FileId = result.id;
@@ -340,7 +343,7 @@ namespace VideoAnnotation
             PlayVideo(result.fileName);
         }
 
-        private string JP()
+        private string TakeSnapshot(string fileId)
         {
             //string str1 = Process.GetCurrentProcess().MainModule.FileName;//可获得当前执行的exe的文件名。 
             //string str2 = Environment.CurrentDirectory;//获取和设置当前目录（即该进程从中启动的目录）的完全限定路径。(备注:按照定义，如果该进程在本地或网络驱动器的根目录中启动，则此属性的值为驱动器名称后跟一个尾部反斜杠（如“C:\”）。如果该进程在子目录中启动，则此属性的值为不带尾部反斜杠的驱动器和子目录路径[如“C:\mySubDirectory”])。 
@@ -350,15 +353,22 @@ namespace VideoAnnotation
             //string str6 = Application.ExecutablePath;//获取启动了应用程序的可执行文件的路径，包括可执行文件的名称。 
             //string str7 = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;//获取或设置包含该应用程序的目录的名称。
             var path = Directory.GetCurrentDirectory().Replace("\\bin\\debug\\", "");
-            var result = GetSelectRowValues();
-            path = Path.Combine(path, "imgs", result.id);
+            path = Path.Combine(path, "imgs", fileId);
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
             }
             var imgName = Guid.NewGuid().ToString().Replace("-", "") + ".jpg";
             path = Path.Combine(path, imgName);
-            return string.Empty;
+            try
+            {
+                this.vlcPlayer.TakeSnapshot(path);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("截屏失败", ex);
+            }
+            return path;
         }
 
     }
