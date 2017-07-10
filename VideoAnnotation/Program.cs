@@ -14,6 +14,9 @@ namespace VideoAnnotation
         [STAThread]
         static void Main()
         {
+
+            DataHelper.CreateDatabase();
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());

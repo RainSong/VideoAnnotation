@@ -6,15 +6,18 @@ using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.Data;
 using System.Dynamic;
+using System.IO;
+using System.Configuration;
 
 namespace VideoAnnotation
 {
     public class DataHelper
     {
-        /// <summary>
-        /// 数据库链接字符串
-        /// </summary>
-        private static readonly string ConnectionString = @"Data Source=E:\workspace\git\VideoAnnotation\VideoAnnotation\DB\videoinfo.sqlite;Version=3;Pooling=True;Max Pool Size=100;";
+        private static string GetConnectionString()
+        {
+            return string.Empty;
+        }
+        
         /// <summary>
         /// 获取一个打开的数据库链接
         /// </summary>
@@ -24,7 +27,7 @@ namespace VideoAnnotation
             SQLiteConnection conn = null;
             try
             {
-                conn = new SQLiteConnection(ConnectionString);
+                conn = new SQLiteConnection(ConfigurationManager.ConnectionStrings["sqlite"].ConnectionString);
                 if (conn.State != ConnectionState.Open)
                 {
                     conn.Open();
@@ -185,10 +188,10 @@ namespace VideoAnnotation
             }
         }
 
-        public static bool AddAnnotation(string fileId, float position, string annotation)
+        public static bool AddAnnotation(string fileId, float position, string annotation, string imgPath)
         {
             var id = Guid.NewGuid().ToString().Replace("-", "");
-            var sql = "insert into annotations(id,file_id,position,annotation) values(@ID,@FileId,@Position,@Annotation)";
+            var sql = "insert into annotations(id,file_id,position,annotation,img) values(@ID,@FileId,@Position,@Annotation,@Img)";
             try
             {
                 using (var conn = GetOpenConnection())
@@ -199,7 +202,8 @@ namespace VideoAnnotation
                     new SQLiteParameter("ID",id),
                     new SQLiteParameter("FileId",fileId),
                     new SQLiteParameter("Position",position),
-                    new SQLiteParameter("Annotation",annotation)
+                    new SQLiteParameter("Annotation",annotation),
+                    new SQLiteParameter("Img",imgPath)
                 });
                     return cmd.ExecuteNonQuery() > 0;
                 }
@@ -209,5 +213,100 @@ namespace VideoAnnotation
                 throw new Exception("保存注解失败", ex);
             }
         }
+
+        public static bool CreateDatabase()
+        {
+            var connectionString = ConfigurationManager.ConnectionStrings["sqlite"].ConnectionString;
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "videoinfo.sqlite");
+            if (string.IsNullOrEmpty(connectionString) || !File.Exists(path))
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    File.Create(path);
+                }
+                else
+                {
+                    File.Create(path);
+                }
+                connectionString = string.Format(@"Data Source={0};Version=3;Pooling=True;Max Pool Size=100;", path);
+                UpdateConfig(connectionString);
+                return CreateTables();
+            }
+            return true;
+        }
+
+        public static void UpdateConfig(string connectionString)
+        {
+            string file = System.Windows.Forms.Application.ExecutablePath;
+            Configuration config = ConfigurationManager.OpenExeConfiguration(file);
+            var exist = false;
+            if (config.ConnectionStrings.ConnectionStrings["sqlite"] != null)
+            {
+                exist = true;
+            }
+            // 如果连接串已存在，首先删除它  
+            if (exist)
+            {
+                config.ConnectionStrings.ConnectionStrings.Remove("sqlite");
+            }
+            //新建一个连接字符串实例  
+            ConnectionStringSettings mySettings =
+                new ConnectionStringSettings("sqlite", connectionString);
+            // 将新的连接串添加到配置文件中.  
+            config.ConnectionStrings.ConnectionStrings.Add(mySettings);
+            // 保存对配置文件所作的更改  
+            config.Save(ConfigurationSaveMode.Modified);
+            // 强制重新载入配置文件的ConnectionStrings配置节  
+            ConfigurationManager.RefreshSection("connectionStrings");
+        }
+
+        public static bool CreateTables()
+        {
+            var sql_files = @"CREATE TABLE [annotations](
+                                [id] INT NOT NULL, 
+                                [file_id] INT NOT NULL, 
+                                [position] DOUBLE NOT NULL, 
+                                [annotation] VARCHAR(500) NOT NULL,
+                                [img] VARCHAR(500) NOT NULL);";
+            var sql_annotation = @"CREATE TABLE [files](
+                                        [id] VARCHAR(50) NOT NULL, 
+                                        [file_name] VARCHAR(500) NOT NULL, 
+                                        [file_full_name] VARCHAR(500) NOT NULL, 
+                                        [file_hash_code] VARCHAR(100) NOT NULL, 
+                                        [file_hash_type] VARCHAR(20) NOT NULL DEFAULT MD5, 
+                                        [useable] BOOLEAN NOT NULL DEFAULT 1);";
+            var sql_commands = new string[] {
+                sql_files,
+                sql_annotation
+            };
+            try
+            {
+                using (var conn = GetOpenConnection())
+                {
+                    var tran = conn.BeginTransaction();
+                    try
+                    {
+                        foreach (var sql in sql_commands)
+                        {
+                            var cmd = new SQLiteCommand(sql, conn);
+                            cmd.ExecuteNonQuery();
+                        }
+                        tran.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        tran.Rollback();
+                        throw new Exception("创建表失败", ex);
+                    }
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("初始化数据库失败", ex);
+            }
+        }
+
     }
 }

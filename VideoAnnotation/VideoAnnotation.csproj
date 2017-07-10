@@ -42,6 +42,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite, Version=1.0.105.2, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -63,15 +64,6 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="Vlc.DotNet.Core">
-      <HintPath>..\packages\Vlc.DotNet.Core.2.1.134\lib\net45\x86\Vlc.DotNet.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Vlc.DotNet.Core.Interops">
-      <HintPath>..\packages\Vlc.DotNet.Core.Interops.2.1.134\lib\net45\x86\Vlc.DotNet.Core.Interops.dll</HintPath>
-    </Reference>
-    <Reference Include="Vlc.DotNet.Forms">
-      <HintPath>..\packages\Vlc.DotNet.Forms.2.1.134\lib\net45\x86\Vlc.DotNet.Forms.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddAnnotation.cs">
@@ -128,6 +120,20 @@
   <ItemGroup>
     <Content Include="res\start.png" />
     <Content Include="res\stop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Vlc.DotNet\src\Vlc.DotNet.Core.Interops\Vlc.DotNet.Core.Interops - CLR 4 - .Net 4.5.csproj">
+      <Project>{47e251ae-a5ee-4526-bdc1-3c008936e80a}</Project>
+      <Name>Vlc.DotNet.Core.Interops - CLR 4 - .Net 4.5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Vlc.DotNet\src\Vlc.DotNet.Core\Vlc.DotNet.Core - CLR 4 - .Net 4.5.csproj">
+      <Project>{24860783-a729-4a14-98c0-9a34bf138bdb}</Project>
+      <Name>Vlc.DotNet.Core - CLR 4 - .Net 4.5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Vlc.DotNet\src\Vlc.DotNet.Forms\Vlc.DotNet.Forms - CLR 4 - .Net 4.5.csproj">
+      <Project>{914de831-4dfa-44f6-96c1-27cf3b89a2cd}</Project>
+      <Name>Vlc.DotNet.Forms - CLR 4 - .Net 4.5</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.105.2\build\net451\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.105.2\build\net451\System.Data.SQLite.Core.targets')" />

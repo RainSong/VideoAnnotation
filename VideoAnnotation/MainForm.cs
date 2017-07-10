@@ -142,7 +142,14 @@ namespace VideoAnnotation
         {
             if (this.updateUi != null)
             {
-                Invoke(updateUi, e.NewPosition);
+                try
+                {
+                    Invoke(updateUi, e.NewPosition);
+                }
+                catch (Exception ex)
+                {
+
+                }
             }
         }
         /// <summary>
@@ -293,17 +300,21 @@ namespace VideoAnnotation
             }
             dynamic result = GetSelectRowValues();
             var position = this.vlcPlayer.Position;
-            Stop();
             var imgPath = TakeSnapshot(result.id);
+            Stop();
             if (result != null)
             {
                 var addFrom = new AddAnnotation();
                 addFrom.Position = position;
                 addFrom.ImgPath = imgPath;
                 addFrom.StartPosition = FormStartPosition.CenterParent;
-                addFrom.ParentForm = this;
                 addFrom.FileId = result.id;
-                addFrom.ShowDialog();
+                if (addFrom.ShowDialog() == DialogResult.OK)
+                {
+                    this.LoadAnnotations();
+                    this.Start();
+                }
+               
             }
         }
         public void Start()
@@ -317,7 +328,7 @@ namespace VideoAnnotation
         {
             this.btnStartStop.Tag = "Stop";
             this.btnStartStop.Text = "开始";
-            this.vlcPlayer.Stop();
+            this.vlcPlayer.Pause();
         }
 
         public dynamic GetSelectRowValues(DataGridViewRow row = null)
@@ -341,6 +352,7 @@ namespace VideoAnnotation
             var row = this.DataGridFiles.Rows[e.RowIndex];
             var result = GetSelectRowValues(row);
             PlayVideo(result.fileName);
+            this.Start();
         }
 
         private string TakeSnapshot(string fileId)
@@ -352,7 +364,7 @@ namespace VideoAnnotation
             //string str5 = Application.StartupPath;//获取启动了应用程序的可执行文件的路径，不包括可执行文件的名称。 
             //string str6 = Application.ExecutablePath;//获取启动了应用程序的可执行文件的路径，包括可执行文件的名称。 
             //string str7 = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;//获取或设置包含该应用程序的目录的名称。
-            var path = Directory.GetCurrentDirectory().Replace("\\bin\\debug\\", "");
+            var path = Directory.GetCurrentDirectory();
             path = Path.Combine(path, "imgs", fileId);
             if (!Directory.Exists(path))
             {
@@ -362,13 +374,28 @@ namespace VideoAnnotation
             path = Path.Combine(path, imgName);
             try
             {
-                this.vlcPlayer.TakeSnapshot(path);
+                //this.vlcPlayer.OnSnapshotTaken(path);
+
+                Action action = () =>
+                {
+                    this.vlcPlayer.TakeSnapshot(path);
+                };
+                //Invoke(action, path);
+
+                Task task = new Task(action);
+                task.Start();
+
             }
             catch (Exception ex)
             {
                 throw new Exception("截屏失败", ex);
             }
             return path;
+        }
+
+        private void LoadAnnotations()
+        {
+
         }
 
     }
