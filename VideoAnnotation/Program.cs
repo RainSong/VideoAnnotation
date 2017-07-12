@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NLog;
 
 namespace VideoAnnotation
 {
@@ -14,8 +15,15 @@ namespace VideoAnnotation
         [STAThread]
         static void Main()
         {
-
-            DataHelper.CreateDatabase();
+            var logger = LogManager.GetCurrentClassLogger();
+            try
+            {
+                DataHelper.CreateDatabase();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "创建数据库失败");
+            }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

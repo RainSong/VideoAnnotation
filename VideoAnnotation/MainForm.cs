@@ -13,7 +13,7 @@ using Microsoft.Win32;
 using System.Dynamic;
 using System.Security.Cryptography;
 using System.Diagnostics;
-
+using NLog;
 namespace VideoAnnotation
 {
     public partial class MainForm : Form
@@ -22,12 +22,16 @@ namespace VideoAnnotation
         //更新UI
         private Action<float> updateUi;
         private Vlc.DotNet.Core.VlcMedia CurrentMedia;
+        private Logger logger;
+        private string SelectFileId;
+        private AnnotationImage ImgForm;
 
         public MainForm()
         {
             InitializeComponent();
             //this.vlcPlayer.PositionChanged += vlcPlayer_PositionChanged;
-            this.DataGridFiles.AutoGenerateColumns = false;
+            this.DataGridFiles.AutoGenerateColumns =
+                this.DataGridAnnotations.AutoGenerateColumns = false;
             updateUi = (position) =>
             {
                 var p = this.CurrentMedia.Duration.Ticks * position;
@@ -41,8 +45,12 @@ namespace VideoAnnotation
                 this.trackBarPosition.Maximum = (int)this.CurrentMedia.Duration.TotalSeconds;
                 this.trackBarPosition.Value = time.Hour * 60 * 60 + time.Minute * 60 + time.Second;
             };
+            this.logger = LogManager.GetCurrentClassLogger();
+            this.SelectFileId = string.Empty;
+
+            ComputColumnWidth();
         }
-        #region events
+        #region 事件
         /// <summary>
         /// 窗体加载
         /// </summary>
@@ -50,7 +58,7 @@ namespace VideoAnnotation
         /// <param name="e"></param>
         private void MainForm_Load(object sender, EventArgs e)
         {
-            var files = DataHelper.GetFiles();
+            //var files = DataHelper.GetFiles();
             BindDataToFileListView();
             //try
             //{
@@ -162,9 +170,105 @@ namespace VideoAnnotation
             //TODO YGJ 此处应该播放时间根据拖动位置改变
             this.vlcPlayer.Position = ((float)this.trackBarPosition.Value) / this.trackBarPosition.Maximum;
         }
+
+        /// <summary>
+        /// 菜单添加注解点击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MenuItemAddAnnotation_Click(object sender, EventArgs e)
+        {
+            if (this.vlcPlayer.Position < 0)
+            {
+                MessageBox.Show("视频还没有开始播放", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            dynamic result = GetSelectRowValues();
+            var position = this.vlcPlayer.Position;
+            var imgPath = TakeSnapshot(result.id);
+            Stop();
+            if (result != null)
+            {
+                var addFrom = new AddAnnotation();
+                addFrom.Position = position;
+                addFrom.ImgPath = imgPath;
+                addFrom.StartPosition = FormStartPosition.CenterParent;
+                addFrom.FileId = result.id;
+                if (addFrom.ShowDialog() == DialogResult.OK)
+                {
+                    this.LoadAnnotations(this.SelectFileId);
+                    this.Start();
+                }
+
+            }
+        }
+
+        /// <summary>
+        /// 文件列表单元格双击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void DataGridFiles_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            var row = this.DataGridFiles.Rows[e.RowIndex];
+            var result = GetSelectRowValues(row);
+            PlayVideo(result.fileName);
+            this.Start();
+        }
+
+        private void DataGridAnnotations_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+
+            //if (this.DataGridAnnotations.Columns[e.ColumnIndex].Name.Equals("ColImg"))
+            //{
+            //    var value = this.DataGridAnnotations.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+            //    var path = e.Value.ToString();
+            //    using (var fs = new System.IO.FileStream(path, System.IO.FileMode.Open))
+            //    {
+            //        var img = System.Drawing.Image.FromStream(fs);
+            //        e.Value = img;
+            //    }
+            //}
+        }
+
+
+        /// <summary>
+        /// 文件列表选中项改变事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void DataGridFiles_SelectionChanged(object sender, EventArgs e)
+        {
+            dynamic result = GetSelectRowValues();
+            if (result == null) return;
+            var id = result.id;
+            if (!this.SelectFileId.Equals(id))
+            {
+                this.SelectFileId = id;
+                LoadAnnotations(id);
+            }
+            //foreach (DataGridViewRow row in this.DataGridAnnotations.Rows)
+            //{
+            //    row.Height = 150;
+            //}
+        }
+        /// <summary>
+        /// 注解列表尺寸改变事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void DataGridAnnotations_Resize(object sender, EventArgs e)
+        {
+            ComputColumnWidth();
+        }
+
+        private void DataGridAnnotations_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            //TODO YGJ
+        }
         #endregion
 
-        #region methods
+        #region 方法
         /// <summary>
         /// 从数据库中获取文件信息
         /// </summary>
@@ -199,8 +303,15 @@ namespace VideoAnnotation
         /// </summary>
         private void BindDataToFileListView()
         {
-            var dtFiles = DataHelper.GetFiles();
-            this.DataGridFiles.DataSource = dtFiles;
+            try
+            {
+                var dtFiles = DataHelper.GetFiles();
+                this.DataGridFiles.DataSource = dtFiles;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "获取文件信息失败");
+            }
         }
         /// <summary>
         /// 打开文件夹后，将文件信息保存数据至数据库
@@ -224,6 +335,7 @@ namespace VideoAnnotation
             }
             catch (Exception ex)
             {
+                this.logger.Error(ex, "发生错误，保存失败");
                 MessageBox.Show("发生错误，保存失败，" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -237,7 +349,9 @@ namespace VideoAnnotation
             this.vlcPlayer.Play();
             this.CurrentMedia = this.vlcPlayer.GetCurrentMedia();
         }
-
+        /// <summary>
+        /// 计算文件Hash值
+        /// </summary>
         private void HashFiles()
         {
             //dynamic fileInfo = DataHelper.GetNoHashFile();
@@ -250,22 +364,16 @@ namespace VideoAnnotation
                 }
                 else
                 {
-                    //var tempFile = Path.Combine(fileInfo.file_full_name, ".an.temp");
-                    //var fi = new FileInfo(tempFile);
-                    //FileStream stream;
-                    //if (!fi.Exists)
-                    //{
-                    //    stream = fi.Create();
-                    //}
-                    //else
-                    //{
-                    //    stream = fi.OpenWrite();
-                    //}
                     var code = HashFile(fileInfo.file_full_name);
                     DataHelper.UpdateFileHash(fileInfo.id, code);
                 }
             }
         }
+        /// <summary>
+        /// 计算单个文件的Hash值
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private string HashFile(string path)
         {
             int bufferSize = 1024 * 1024;//自定义缓冲区大小1MB  
@@ -289,48 +397,30 @@ namespace VideoAnnotation
             hashCode = hashCode.Replace("-", "");
             return hashCode;
         }
-        #endregion
 
-        private void MenuItemAddAnnotation_Click(object sender, EventArgs e)
-        {
-            if (this.vlcPlayer.Position < 0)
-            {
-                MessageBox.Show("视频还没有开始播放", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            dynamic result = GetSelectRowValues();
-            var position = this.vlcPlayer.Position;
-            var imgPath = TakeSnapshot(result.id);
-            Stop();
-            if (result != null)
-            {
-                var addFrom = new AddAnnotation();
-                addFrom.Position = position;
-                addFrom.ImgPath = imgPath;
-                addFrom.StartPosition = FormStartPosition.CenterParent;
-                addFrom.FileId = result.id;
-                if (addFrom.ShowDialog() == DialogResult.OK)
-                {
-                    this.LoadAnnotations();
-                    this.Start();
-                }
-               
-            }
-        }
+        /// <summary>
+        /// 开始播放
+        /// </summary>
         public void Start()
         {
             this.btnStartStop.Tag = "Start";
             this.btnStartStop.Text = "暂停";
             this.vlcPlayer.Play();
         }
-
+        /// <summary>
+        /// 暂停播放
+        /// </summary>
         public void Stop()
         {
             this.btnStartStop.Tag = "Stop";
             this.btnStartStop.Text = "开始";
             this.vlcPlayer.Pause();
         }
-
+        /// <summary>
+        /// 获取选中行的数据
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
         public dynamic GetSelectRowValues(DataGridViewRow row = null)
         {
             if (row == null)
@@ -347,14 +437,11 @@ namespace VideoAnnotation
             return result;
         }
 
-        private void DataGridFiles_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
-        {
-            var row = this.DataGridFiles.Rows[e.RowIndex];
-            var result = GetSelectRowValues(row);
-            PlayVideo(result.fileName);
-            this.Start();
-        }
-
+        /// <summary>
+        /// 截屏
+        /// </summary>
+        /// <param name="fileId"></param>
+        /// <returns></returns>
         private string TakeSnapshot(string fileId)
         {
             //string str1 = Process.GetCurrentProcess().MainModule.FileName;//可获得当前执行的exe的文件名。 
@@ -392,11 +479,60 @@ namespace VideoAnnotation
             }
             return path;
         }
-
-        private void LoadAnnotations()
+        /// <summary>
+        /// 跟住选中的文件ID加载备注
+        /// </summary>
+        /// <param name="fileId"></param>
+        private void LoadAnnotations(string fileId)
         {
+            try
+            {
+                var dt = DataHelper.GetAnnotations(fileId);
+                this.DataGridAnnotations.DataSource = dt;
+            }
+            catch (Exception ex)
+            {
+                this.logger.Error(ex, "获取注解信息失败");
+            }
+        }
+        /// <summary>
+        /// 计算注解别表的列宽度
+        /// </summary>
+        private void ComputColumnWidth()
+        {
+            //this.ColAnnotation.Width = this.DataGridAnnotations.Width * 3 / 4 - 2;
+            //this.ColImg.Width = this.DataGridAnnotations.Width / 4 - 1;
+        }
+        #endregion
 
+        private void DataGridAnnotations_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            var dt = this.DataGridAnnotations.DataSource as DataTable;
+            if (dt != null)
+            {
+                var dr = dt.Rows[e.RowIndex];
+                var img = dr.Field<string>("img");
+                if (ImgForm == null)
+                {
+                    this.ImgForm = new AnnotationImage(img);
+                }
+                else
+                {
+                    this.ImgForm.SetImage(img);
+                }
+                this.ImgForm.SetDesktopLocation(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
+                this.ImgForm.Show();
+            }
         }
 
+        private void DataGridAnnotations_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            this.ImgForm.Hide();
+        }
+
+        private void MainForm_MouseMove(object sender, MouseEventArgs e)
+        {
+            this.ImgForm.SetDesktopLocation(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
+        }
     }
 }

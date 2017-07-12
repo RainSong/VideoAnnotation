@@ -53,7 +53,8 @@
             this.btnPrevious = new System.Windows.Forms.Button();
             this.btnStartStop = new System.Windows.Forms.Button();
             this.panelRightBottom = new System.Windows.Forms.Panel();
-            this.listViewAnnotation = new System.Windows.Forms.ListView();
+            this.DataGridAnnotations = new System.Windows.Forms.DataGridView();
+            this.ColAnnotation = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Menu.SuspendLayout();
             this.panelLeft.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DataGridFiles)).BeginInit();
@@ -64,6 +65,7 @@
             this.panelPlayControl.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarPosition)).BeginInit();
             this.panelRightBottom.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.DataGridAnnotations)).BeginInit();
             this.SuspendLayout();
             // 
             // Menu
@@ -150,11 +152,12 @@
             this.DataGridFiles.Name = "DataGridFiles";
             this.DataGridFiles.RowHeadersVisible = false;
             this.DataGridFiles.RowTemplate.Height = 23;
-            this.DataGridFiles.ScrollBars = System.Windows.Forms.ScrollBars.Horizontal;
+            this.DataGridFiles.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.DataGridFiles.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.DataGridFiles.Size = new System.Drawing.Size(310, 657);
             this.DataGridFiles.TabIndex = 0;
             this.DataGridFiles.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridFiles_CellDoubleClick);
+            this.DataGridFiles.SelectionChanged += new System.EventHandler(this.DataGridFiles_SelectionChanged);
             // 
             // ColID
             // 
@@ -300,24 +303,43 @@
             // 
             // panelRightBottom
             // 
-            this.panelRightBottom.Controls.Add(this.listViewAnnotation);
+            this.panelRightBottom.Controls.Add(this.DataGridAnnotations);
             this.panelRightBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panelRightBottom.Location = new System.Drawing.Point(0, 493);
             this.panelRightBottom.Name = "panelRightBottom";
             this.panelRightBottom.Size = new System.Drawing.Size(836, 164);
             this.panelRightBottom.TabIndex = 0;
             // 
-            // listViewAnnotation
+            // DataGridAnnotations
             // 
-            this.listViewAnnotation.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listViewAnnotation.FullRowSelect = true;
-            this.listViewAnnotation.GridLines = true;
-            this.listViewAnnotation.Location = new System.Drawing.Point(0, 0);
-            this.listViewAnnotation.Name = "listViewAnnotation";
-            this.listViewAnnotation.Size = new System.Drawing.Size(836, 164);
-            this.listViewAnnotation.TabIndex = 0;
-            this.listViewAnnotation.UseCompatibleStateImageBehavior = false;
-            this.listViewAnnotation.View = System.Windows.Forms.View.List;
+            this.DataGridAnnotations.AllowUserToAddRows = false;
+            this.DataGridAnnotations.AllowUserToDeleteRows = false;
+            this.DataGridAnnotations.AllowUserToResizeColumns = false;
+            this.DataGridAnnotations.AllowUserToResizeRows = false;
+            this.DataGridAnnotations.BackgroundColor = System.Drawing.SystemColors.Control;
+            this.DataGridAnnotations.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.DataGridAnnotations.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.DataGridAnnotations.ColumnHeadersVisible = false;
+            this.DataGridAnnotations.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.ColAnnotation});
+            this.DataGridAnnotations.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.DataGridAnnotations.Location = new System.Drawing.Point(0, 0);
+            this.DataGridAnnotations.Name = "DataGridAnnotations";
+            this.DataGridAnnotations.ReadOnly = true;
+            this.DataGridAnnotations.RowHeadersVisible = false;
+            this.DataGridAnnotations.RowTemplate.Height = 23;
+            this.DataGridAnnotations.Size = new System.Drawing.Size(836, 164);
+            this.DataGridAnnotations.TabIndex = 0;
+            this.DataGridAnnotations.CellMouseEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridAnnotations_CellMouseEnter);
+            this.DataGridAnnotations.CellMouseLeave += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridAnnotations_CellMouseLeave);
+            // 
+            // ColAnnotation
+            // 
+            this.ColAnnotation.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ColAnnotation.DataPropertyName = "annotation";
+            this.ColAnnotation.HeaderText = "Column1";
+            this.ColAnnotation.Name = "ColAnnotation";
+            this.ColAnnotation.ReadOnly = true;
             // 
             // MainForm
             // 
@@ -331,6 +353,7 @@
             this.Name = "MainForm";
             this.Text = "视频注解";
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.MainForm_MouseMove);
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.panelLeft.ResumeLayout(false);
@@ -343,6 +366,7 @@
             this.panelPlayControl.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarPosition)).EndInit();
             this.panelRightBottom.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.DataGridAnnotations)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -369,13 +393,14 @@
         private System.Windows.Forms.Button btnPrevious;
         private System.Windows.Forms.Button btnStartStop;
         private System.Windows.Forms.Panel panelRightBottom;
-        private System.Windows.Forms.ListView listViewAnnotation;
         private System.Windows.Forms.Label labelVideoPosition;
         private System.Windows.Forms.ToolStripMenuItem MenuItemAddAnnotation;
         private System.Windows.Forms.DataGridView DataGridFiles;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColID;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColFileFullName;
         private System.Windows.Forms.DataGridViewTextBoxColumn colFileName;
+        private System.Windows.Forms.DataGridView DataGridAnnotations;
+        private System.Windows.Forms.DataGridViewTextBoxColumn ColAnnotation;
     }
 }
 

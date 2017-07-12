@@ -12,13 +12,7 @@ using System.Configuration;
 namespace VideoAnnotation
 {
     public class DataHelper
-    {
-        private static string GetConnectionString()
-        {
-            return string.Empty;
-        }
-        
-        /// <summary>
+    {        /// <summary>
         /// 获取一个打开的数据库链接
         /// </summary>
         /// <returns></returns>
@@ -187,7 +181,14 @@ namespace VideoAnnotation
                 throw new Exception("更新文件Useable值失败", ex);
             }
         }
-
+        /// <summary>
+        /// 添加一个注解
+        /// </summary>
+        /// <param name="fileId">文件ID</param>
+        /// <param name="position">视频位置</param>
+        /// <param name="annotation">注解</param>
+        /// <param name="imgPath">截屏图片</param>
+        /// <returns></returns>
         public static bool AddAnnotation(string fileId, float position, string annotation, string imgPath)
         {
             var id = Guid.NewGuid().ToString().Replace("-", "");
@@ -213,29 +214,29 @@ namespace VideoAnnotation
                 throw new Exception("保存注解失败", ex);
             }
         }
-
+        /// <summary>
+        /// 初始化数据库
+        /// </summary>
+        /// <returns></returns>
         public static bool CreateDatabase()
         {
             var connectionString = ConfigurationManager.ConnectionStrings["sqlite"].ConnectionString;
             var path = Path.Combine(Directory.GetCurrentDirectory(), "videoinfo.sqlite");
             if (string.IsNullOrEmpty(connectionString) || !File.Exists(path))
             {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                    File.Create(path);
-                }
-                else
-                {
-                    File.Create(path);
-                }
+                FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+                fs.Close();
+
                 connectionString = string.Format(@"Data Source={0};Version=3;Pooling=True;Max Pool Size=100;", path);
                 UpdateConfig(connectionString);
                 return CreateTables();
             }
             return true;
         }
-
+        /// <summary>
+        /// 更新配置文件中数据库连接
+        /// </summary>
+        /// <param name="connectionString">数据库连接字符串</param>
         public static void UpdateConfig(string connectionString)
         {
             string file = System.Windows.Forms.Application.ExecutablePath;
@@ -260,7 +261,10 @@ namespace VideoAnnotation
             // 强制重新载入配置文件的ConnectionStrings配置节  
             ConfigurationManager.RefreshSection("connectionStrings");
         }
-
+        /// <summary>
+        /// 创建数据表
+        /// </summary>
+        /// <returns></returns>
         public static bool CreateTables()
         {
             var sql_files = @"CREATE TABLE [annotations](
@@ -308,5 +312,25 @@ namespace VideoAnnotation
             }
         }
 
+        public static DataTable GetAnnotations(string fileId)
+        {
+            var sql = "select id,position,annotation,img from annotations where file_id = @FielId order by position";
+            try
+            {
+                using (var conn = GetOpenConnection())
+                {
+                    var cmd = new SQLiteCommand(sql, conn);
+                    cmd.Parameters.Add(new SQLiteParameter { ParameterName = "FielId",Value = fileId });
+                    var adapter = new SQLiteDataAdapter(cmd);
+                    var table = new DataTable();
+                    adapter.Fill(table);
+                    return table;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("获取注解信息失败", ex);
+            }
+        }
     }
 }
