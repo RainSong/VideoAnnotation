@@ -26,8 +26,15 @@ namespace VideoAnnotation
         private string SelectFileId;
         private AnnotationImage ImgForm;
 
+        private Panel ImagePanel;
+        private PictureBox PicBox;
+
         public MainForm()
         {
+            GlobalMouseHandler gmh = new GlobalMouseHandler();
+            gmh.MouseMoved+=new MouseMovedEvent(MouseMoved);
+            Application.AddMessageFilter(gmh);
+
             InitializeComponent();
             //this.vlcPlayer.PositionChanged += vlcPlayer_PositionChanged;
             this.DataGridFiles.AutoGenerateColumns =
@@ -48,7 +55,23 @@ namespace VideoAnnotation
             this.logger = LogManager.GetCurrentClassLogger();
             this.SelectFileId = string.Empty;
 
-            ComputColumnWidth();
+            this.PicBox = new PictureBox();
+            this.PicBox.SizeMode = PictureBoxSizeMode.Zoom;
+            this.PicBox.Dock = DockStyle.Fill;
+
+            this.ImagePanel = new Panel();
+            this.ImagePanel.Size = new Size(200, 200);
+            this.ImagePanel.Visible = false;
+            this.ImagePanel.Controls.Add(this.PicBox);
+        }
+
+        private void MouseMoved()
+        {
+            if (this.ImgForm != null)
+            {
+                Point mouseLoactioin = System.Windows.Forms.Cursor.Position;
+                //this.ImgForm.Location = new Point(mouseLoactioin.X , mouseLoactioin.Y - this.ImgForm.Height);
+            }
         }
         #region 事件
         /// <summary>
@@ -216,21 +239,6 @@ namespace VideoAnnotation
             this.Start();
         }
 
-        private void DataGridAnnotations_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-        {
-
-            //if (this.DataGridAnnotations.Columns[e.ColumnIndex].Name.Equals("ColImg"))
-            //{
-            //    var value = this.DataGridAnnotations.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
-            //    var path = e.Value.ToString();
-            //    using (var fs = new System.IO.FileStream(path, System.IO.FileMode.Open))
-            //    {
-            //        var img = System.Drawing.Image.FromStream(fs);
-            //        e.Value = img;
-            //    }
-            //}
-        }
-
 
         /// <summary>
         /// 文件列表选中项改变事件
@@ -247,24 +255,6 @@ namespace VideoAnnotation
                 this.SelectFileId = id;
                 LoadAnnotations(id);
             }
-            //foreach (DataGridViewRow row in this.DataGridAnnotations.Rows)
-            //{
-            //    row.Height = 150;
-            //}
-        }
-        /// <summary>
-        /// 注解列表尺寸改变事件
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void DataGridAnnotations_Resize(object sender, EventArgs e)
-        {
-            ComputColumnWidth();
-        }
-
-        private void DataGridAnnotations_DataError(object sender, DataGridViewDataErrorEventArgs e)
-        {
-            //TODO YGJ
         }
         #endregion
 
@@ -354,19 +344,26 @@ namespace VideoAnnotation
         /// </summary>
         private void HashFiles()
         {
-            //dynamic fileInfo = DataHelper.GetNoHashFile();
-            dynamic fileInfo;
-            while ((fileInfo = DataHelper.GetNoHashFile()) != null)
+            try
             {
-                if (!File.Exists(fileInfo.file_full_name))
+                //dynamic fileInfo = DataHelper.GetNoHashFile();
+                dynamic fileInfo;
+                while ((fileInfo = DataHelper.GetNoHashFile()) != null)
                 {
-                    DataHelper.UpdateFileUseable(fileInfo.id, false);
+                    if (!File.Exists(fileInfo.file_full_name))
+                    {
+                        DataHelper.UpdateFileUseable(fileInfo.id, false);
+                    }
+                    else
+                    {
+                        var code = HashFile(fileInfo.file_full_name);
+                        DataHelper.UpdateFileHash(fileInfo.id, code);
+                    }
                 }
-                else
-                {
-                    var code = HashFile(fileInfo.file_full_name);
-                    DataHelper.UpdateFileHash(fileInfo.id, code);
-                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "计算文件Hash失败");
             }
         }
         /// <summary>
@@ -495,14 +492,6 @@ namespace VideoAnnotation
                 this.logger.Error(ex, "获取注解信息失败");
             }
         }
-        /// <summary>
-        /// 计算注解别表的列宽度
-        /// </summary>
-        private void ComputColumnWidth()
-        {
-            //this.ColAnnotation.Width = this.DataGridAnnotations.Width * 3 / 4 - 2;
-            //this.ColImg.Width = this.DataGridAnnotations.Width / 4 - 1;
-        }
         #endregion
 
         private void DataGridAnnotations_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
@@ -511,28 +500,58 @@ namespace VideoAnnotation
             if (dt != null)
             {
                 var dr = dt.Rows[e.RowIndex];
-                var img = dr.Field<string>("img");
-                if (ImgForm == null)
+                var imgPath = dr.Field<string>("img");
+                //if (ImgForm == null)
+                //{
+                //    this.ImgForm = new AnnotationImage(img);
+                //}
+                //else
+                //{
+                //    this.ImgForm.SetImage(img);
+                //}
+
+                using (var fs = new System.IO.FileStream(imgPath, System.IO.FileMode.Open))
                 {
-                    this.ImgForm = new AnnotationImage(img);
+                    var img = System.Drawing.Image.FromStream(fs);
+                    this.PicBox.Image = img;
                 }
-                else
-                {
-                    this.ImgForm.SetImage(img);
-                }
-                this.ImgForm.SetDesktopLocation(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
-                this.ImgForm.Show();
+                this.ImagePanel.Location = new Point(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
+                //this.ImgForm.SetDesktopLocation(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
+                //this.ImgForm.Show();
+                this.ImagePanel.Visible = true;
             }
         }
 
         private void DataGridAnnotations_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
         {
-            this.ImgForm.Hide();
+            this.ImagePanel.Visible = false;
+            //this.ImgForm.Hide();
+        }
+    }
+
+    public delegate void MouseMovedEvent();
+
+    public class GlobalMouseHandler : IMessageFilter
+    {
+        private const int WM_MOUSEMOVE = 0x0200;
+
+        public event MouseMovedEvent MouseMoved;
+
+        #region IMessageFilter Members
+
+        public bool PreFilterMessage(ref Message m)
+        {
+            if (m.Msg == WM_MOUSEMOVE)
+            {
+                if (MouseMoved != null)
+                {
+                    MouseMoved();
+                }
+            }
+            // Always allow message to continue to the next filter control
+            return false;
         }
 
-        private void MainForm_MouseMove(object sender, MouseEventArgs e)
-        {
-            this.ImgForm.SetDesktopLocation(Cursor.Position.X - this.ImgForm.Width, Cursor.Position.Y - this.ImgForm.Height);
-        }
+        #endregion
     }
 }

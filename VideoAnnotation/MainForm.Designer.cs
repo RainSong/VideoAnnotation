@@ -353,7 +353,6 @@
             this.Name = "MainForm";
             this.Text = "视频注解";
             this.Load += new System.EventHandler(this.MainForm_Load);
-            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.MainForm_MouseMove);
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.panelLeft.ResumeLayout(false);
